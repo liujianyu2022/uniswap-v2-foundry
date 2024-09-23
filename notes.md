@@ -54,12 +54,29 @@ $$
 $$
     (x + \Delta x)(y - \Delta y) = x \times y
 $$
+
+如果不考虑手续费：
 $$
     \Delta y = y \times \frac{ \Delta x }{ x + \Delta x} \qquad  input ==> output
 $$
 $$
     \Delta x = x \times \frac{ \Delta y }{ y - \Delta y} \qquad  input <== output
 $$
+
+如果考虑手续费：
+交易手续费时，用户实际用于交换的代币量会减少，即 $ \Delta x' = (1-f) \cdot \Delta x $
+其中：
+$ \Delta x' $ 是 UniSwap 扣除手续费后的实际输入量
+$ f $ 为手续费费率，在 UniSwap V2 中 $ f = 0.3\% $
+
+$$
+    \Delta y = y \times \frac{ \Delta x' }{ x + \Delta x'} \qquad \Delta y = y \times \frac{ \Delta x \cdot (1-f) }{ x + \Delta x \cdot (1-f)}  \qquad input ==> output
+$$
+$$
+    \Delta x' = x \times \frac{ \Delta y }{ y - \Delta y} \qquad \Delta x = \frac{x}{1-f} \times \frac{ \Delta y }{ y - \Delta y} \qquad  input <== output
+$$
+
+
 
 <br />
 
