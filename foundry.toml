@@ -1,6 +1,11 @@
 [profile.default]
 src = "src"
 out = "out"
+lib = "lib"
 libs = ["lib"]
+
+[profile.fuzz]
+enable = true
+runs = 1000
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

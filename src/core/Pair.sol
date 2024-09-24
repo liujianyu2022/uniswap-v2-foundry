@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./interfaces/IPair.sol";
 import "./interfaces/IFactory.sol";
+import "./interfaces/ICallee.sol";
 import "./libraries/SafeMath.sol";
 import "./libraries/UQ112x112.sol";
 import "./ERC20.sol";
@@ -83,7 +84,7 @@ contract Pair is IPair, ERC20 {
             to,
             value
         );
-        (bool success, bytes memory result) = token.call(data);
+        (bool success, ) = token.call(data);
         require(success, 'UniswapV2: TRANSFER_FAILED');
     }
 
@@ -201,7 +202,7 @@ contract Pair is IPair, ERC20 {
 
             if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
             if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
-            if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
+            if (data.length > 0) ICallee(to).uniswapCall(msg.sender, amount0Out, amount1Out, data);
             balance0 = IERC20(_token0).balanceOf(address(this));
             balance1 = IERC20(_token1).balanceOf(address(this));
         }

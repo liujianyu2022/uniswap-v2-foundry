@@ -14,8 +14,8 @@ contract ERC20 is IERC20 {
 
     address public owner;
 
-    mapping(address owner => uint balance) public override balanceOf;
-    mapping(address owner => mapping(address spender => uint amount)) public override allowance;
+    mapping(address user => uint balance) public override balanceOf;
+    mapping(address user => mapping(address spender => uint amount)) public override allowance;
 
     modifier onlyOwner {
         require(msg.sender == owner, "you are not the owner!");
@@ -71,9 +71,9 @@ contract ERC20 is IERC20 {
         emit Transfer(from, address(0), value);
     }
 
-    function _approve(address owner, address spender, uint value) internal {
-        allowance[owner][spender] = value;             // 这里只授权了，并没有进行扣费
-        emit Approval(owner, spender, value);
+    function _approve(address user, address spender, uint value) internal {
+        allowance[user][spender] = value;             // 这里只授权了，并没有进行扣费
+        emit Approval(user, spender, value);
     }
 
     function _transfer(address from, address to, uint value) internal {
