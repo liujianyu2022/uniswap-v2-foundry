@@ -38,15 +38,33 @@
 | y             | OutputReserve     |
 | $ \Delta y $  | OutputAmount      |
 
-1. UniSwap V2 中添加流动性、移除流动性：
+#### 1. UniSwap V2 中添加流动性、移除流动性：
 只需要按照 pool 中两种代币 x，y 的储量的比例进行计算即可。
 $$
     \frac{x}{y} = \frac{\Delta x}{\Delta y}
 $$
 
+![alt text](images/image-7.png)
+
+示例：
+|p=0.4|p=1|
+|:---:|:---:|
+| ![alt text](images/image-5.png) | ![alt text](images/image-6.png) |
+
+
+AddLiquidity process
+![alt text](images/image-1.png)
+
+无论是新增流动性的时候 mint share，还是在撤销流动性的时候 burn share，都是按照比例来即可。
+
+|   AddLiquidity                |       RemoveLiquidity          |
+|   :---:                       |       :---:                    |
+|   mint share                  |       burn share               |
+![alt text](images/image3.png)  | ![alt text](images/image4.png) |
+
 <br />
 
-2. UniSwap V2 中进行 swap 交换：
+#### 2. UniSwap V2 中进行 swap 交换：
 基本原理： $ x \times y = k $
 
 下面公式，假设投入的为 $\Delta x$，取出的为 $\Delta y$。
@@ -77,10 +95,7 @@ $$
 $$
 
 
-
-<br />
-
-3. UniSwap V2中的无常损失：
+#### 3. UniSwap V2中的无常损失：
 联立方程组，其中：p为一次函数的斜率，也就是x代币的价格，使用y表示。即1个x代币的价位为p，单位是y代币
 \[
 \begin{aligned}
@@ -117,8 +132,20 @@ l &= \frac{ y_1 + p_1 \cdot x_1 }{ y_1 + p_1 \cdot x_0 } - 1 \\
 \end{align*}
 \]
 
-其函数图像如下所示：x ∈ [0, 6]，
+其函数图像如下所示：$ x ∈ [0, 6] $，
 当 $x = 1$ 的时候，$f(x) = 0$，表示无常损失为0；
 当 $x < 1$ 的时候，表示代币 $x$ 价格下降了，$ f(x) ≠ 0 $，表示无常损失不为0；
 当 $x > 1$ 的时候，表示代币 $x$ 价格上涨了，$ f(x) ≠ 0 $，表示无常损失不为0；
 ![alt text](images/image.png)
+
+#### 4. slippage
+##### definition
+the difference between the price you expect to receive VS what you receive actually. 
+
+##### example
+Alice and Bob want to swap 2000 DAI for 1 ETH simultaneously.
+Therefore, they send their transactions to the pool at the same time.
+We assume that Alice's transaction is executed before Bob's.
+After Alice's transaction is completed, the price of ETH increases.
+As a result, Bob receives less ETH than he expected.
+![alt text](images/image-2.png)
