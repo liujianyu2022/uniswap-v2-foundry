@@ -43,7 +43,8 @@
 $$
     \frac{x}{y} = \frac{\Delta x}{\Delta y}
 $$
-
+从下图可以看到，添加流动性后，曲线会从 $L_0$ 平移到 $L_1$，并且 $L_1$ 上的初始点仍然在直线 $y=px$ 上
+the price before adding liquidity must be equal to the price after adding liquidity
 ![alt text](images/image-7.png)
 
 示例：
@@ -54,6 +55,9 @@ $$
 
 AddLiquidity process
 ![alt text](images/image-1.png)
+
+RemoveLiquidity process
+![alt text](images/image-8.png)
 
 无论是新增流动性的时候 mint share，还是在撤销流动性的时候 burn share，都是按照比例来即可。
 
