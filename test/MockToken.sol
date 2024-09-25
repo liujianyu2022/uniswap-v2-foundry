@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "../src/core/interfaces/IERC20.sol";
+import "../src/core/libraries/SafeMath.sol";
+
+contract MockToken is IERC20 {
+    using SafeMath for uint;
+
+    string public override name;
+    string public override symbol;
+    uint8 public override decimals = 18;
+    uint public override totalSupply;
+
+    address public owner;
+
+    mapping(address user => uint balance) public override balanceOf;
+    mapping(address user => mapping(address spender => uint amount)) public override allowance;
+
+    modifier onlyOwner {
+        require(msg.sender == owner, "you are not the owner!");
+        _;
+    }
+
+    constructor(string memory _name, string memory _symbol){
+        owner = msg.sender;
+        name = _name;
+        symbol = _symbol;
+    }
+
+    // 用户调用 approve，授权给第三方 spender
+    // 调用者 msg.sender  -->   用户    
+    function approve(address spender, uint value) external override returns (bool) {
+        _approve(msg.sender, spender, value);
+        return true;
+    }
+
+    function transfer(address to, uint value) external override returns (bool) {
+        _transfer(msg.sender, to, value);
+        return true;
+    }
+
+    // 已经被授权的第三方 spender 调用该函数进行转账
+    // from         -->   被扣款的用户地址，该用户授权了第三方 spender
+    // msg.sender   -->   第三方 spender  
+    function transferFrom(address from, address to, uint value) external override returns (bool) {
+        // 在早期的 solidity (0.8.x之前)， uint(-1) 表示 uint256 的最大值，即 2^256 - 1
+        // 在 solidity 0.8.x 之后，type(uint256).max 表示 uint256 的最大值
+        if (allowance[from][msg.sender] != type(uint256).max) {
+            allowance[from][msg.sender] = allowance[from][msg.sender].sub(value);
+        }
+        _transfer(from, to, value);
+        return true;
+    }
+
+    function mint(address to, uint value) external onlyOwner {
+        _mint(to, value);
+    }
+
+    function burn(address from, uint value) external onlyOwner {
+        _burn(from, value);
+    }
+
+    function _mint(address to, uint value) internal {
+        totalSupply = totalSupply.add(value);
+        balanceOf[to] = balanceOf[to].add(value);
+        emit Transfer(address(0), to, value);
+    }
+
+    function _burn(address from, uint value) internal {
+        totalSupply = totalSupply.sub(value);
+        balanceOf[from] = balanceOf[from].sub(value);
+        emit Transfer(from, address(0), value);
+    }
+
+    function _approve(address user, address spender, uint value) internal {
+        allowance[user][spender] = value;             // 这里只授权了，并没有进行扣费
+        emit Approval(user, spender, value);
+    }
+
+    function _transfer(address from, address to, uint value) internal {
+        balanceOf[from] = balanceOf[from].sub(value);
+        balanceOf[to] = balanceOf[to].add(value);
+        emit Transfer(from, to, value);
+    }
+}
