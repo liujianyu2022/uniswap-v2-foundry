@@ -138,6 +138,9 @@ contract Pair is IPair, ERC20 {
     }
 
     // 当流动性提供者想要移除流动性时，流动性代币（LP tokens）将被销毁，流动性提供者应该按比例从池中取回两种代币
+    // 注意：流动性提供者在调用 burn() 前，Router 合约中的 removeLiquidity() 会把他们的 LP Token 转移到合约地址
+    // 具体代码：在 periphery 仓库的 Router 合约的  removeLiquidity() 中 
+    // IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
     function burn(address to) external override lock returns (uint amount0, uint amount1) {
         
         (uint112 _reserve0, uint112 _reserve1,) = getReserves();        // gas savings
@@ -149,6 +152,8 @@ contract Pair is IPair, ERC20 {
         uint balance1 = IERC20(_token1).balanceOf(address(this));
 
         // 当前合约地址上拥有的流动性代币
+        // 注意：流动性提供者在调用 burn() 前，应该把他们的 LP Token 转移到合约地址
+        // 因此这里使用 balanceOf[address[this]]，而不是 balanceOf[address[to]] 
         uint liquidity = balanceOf[address(this)];
         // uint liquidity = balanceOf[to];
 
@@ -167,6 +172,9 @@ contract Pair is IPair, ERC20 {
 
         require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
 
+        // 注意：流动性提供者在调用 burn() 前，应该把他们的 LP Token 转移到合约地址
+        
+        // 因此这里使用 balanceOf[address[this]]，而不是 balanceOf[address[to]] 
         _burn(address(this), liquidity);
         // _burn(to, liquidity);
 

@@ -201,7 +201,9 @@ contract PairTest is Test {
 
 
         // 接下来进行 burn 操作
+        // 注意：流动性提供者在调用 burn() 前，应该把他们的 LP Token 转移到 pair合约地址
         vm.startPrank(liquidityProvider3);
+        pair.transfer(address(pair), liquidity3);
         (uint256 amountWeth, uint256 amountDai) = pair.burn(liquidityProvider3);
 
         assertEq(amountWeth / 1e18, 330 ether / 1e18);
