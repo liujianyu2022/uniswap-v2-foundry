@@ -8,6 +8,7 @@ import "./libraries/SafeMath.sol";
 import "./libraries/UQ112x112.sol";
 import "./ERC20.sol";
 
+import {Test, console} from "forge-std/Test.sol";
 
 contract Pair is IPair, ERC20 {
     using SafeMath for uint;
@@ -149,6 +150,7 @@ contract Pair is IPair, ERC20 {
 
         // 当前合约地址上拥有的流动性代币
         uint liquidity = balanceOf[address(this)];
+        // uint liquidity = balanceOf[to];
 
         // _mintFee 函数用于计算并处理协议费，如果费用开关打开，它会铸造部分费用流动性给合约
         bool feeOn = _mintFee(_reserve0, _reserve1);
@@ -158,9 +160,15 @@ contract Pair is IPair, ERC20 {
         amount0 = liquidity.mul(balance0) / _totalSupply; // 根据储备量和流动性比例计算返还的 token0
         amount1 = liquidity.mul(balance1) / _totalSupply; // 根据储备量和流动性比例计算返还的 token0
 
+        console.log("address(this) --- ", address(this));
+        console.log("balance0 --- ", balance0);
+        console.log("balance1 --- ", balance1);
+        console.log("liquidity --- ", liquidity);
+
         require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
 
         _burn(address(this), liquidity);
+        // _burn(to, liquidity);
 
         _safeTransfer(_token0, to, amount0);
         _safeTransfer(_token1, to, amount1);
@@ -272,5 +280,10 @@ contract Pair is IPair, ERC20 {
 
         emit Sync(reserve0, reserve1);
 
+    }
+
+    // 注意：下面的update函数仅是为了在测试的时候能够更新reserve0和reserve1而添加的
+    function update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) external {
+        _update(balance0, balance1, _reserve0, _reserve1);
     }
 }
