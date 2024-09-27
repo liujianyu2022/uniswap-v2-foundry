@@ -123,22 +123,62 @@ contract Router is IRouter {
         address to,
         uint deadline
     ) external override hasExpired(deadline) returns (uint amountA, uint amountB) {
+        address pair = Tools.pairFor(factory, tokenA, tokenB);            // 根据 create2 生成 pair合约地址，获取其地址
 
+        Pair(pair).transferFrom(msg.sender, pair, liquidity);             // send liquidity to pair
+
+        (uint amount0, uint amount1) =  Pair(pair).burn(to);              // burn liquidity and send token to the "to" address
+
+        (address token0,) = Tools.sortTokens(tokenA, tokenB);
+        (amountA, amountB) = ( tokenA == token0 ) ? (amount0, amount1) : (amount1, amount0);
+
+        require(amountA >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
+        require(amountB >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
     }
 
+    // requires the initial amount to have already been sent to the first pair
+    function _swap(uint[] memory amounts, address[] memory path, address _to) internal virtual {
+        for (uint i; i < path.length - 1; i++) {
+            (address input, address output) = (path[i], path[i + 1]);
+            (address token0,) = Tools.sortTokens(input, output);
+            uint amountOut = amounts[i + 1];
+            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
+            address to = i < path.length - 2 ? Tools.pairFor(factory, output, path[i + 2]) : _to;
+            Pair(Tools.pairFor(factory, input, output)).swap(
+                amount0Out, amount1Out, to, new bytes(0)
+            );
+        }
+    }
+
+    // 进行代币交换，用户提供精确数量的输入代币，并指定最小输出数量     input  -->  output
     function swapExactTokensForTokens(
         uint amountIn,
         uint amountOutMin,
         address[] calldata path,
         address to,
         uint deadline
-    ) external virtual override returns (uint[] memory amounts) {}
+    ) external virtual override hasExpired(deadline) returns (uint[] memory amounts) {
+        amounts = Tools.getAmountsOut(factory, amountIn, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
+        Tools.safeTransferFrom(
+            path[0], msg.sender, Tools.pairFor(factory, path[0], path[1]), amounts[0]
+        );
+        _swap(amounts, path, to);
+    }
 
+    // 进行代币交换，用户指定所需的精确输出代币数量，并设置最大输入代币数量   input  <-- output
     function swapTokensForExactTokens(
         uint amountOut,
         uint amountInMax,
         address[] calldata path,
         address to,
         uint deadline
-    ) external virtual override returns (uint[] memory amounts) {}
+    ) external virtual override hasExpired(deadline) returns (uint[] memory amounts) {
+        amounts = Tools.getAmountsIn(factory, amountOut, path);
+        require(amounts[0] <= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
+        Tools.safeTransferFrom(
+            path[0], msg.sender, Tools.pairFor(factory, path[0], path[1]), amounts[0]
+        );
+        _swap(amounts, path, to);
+    }
 }

@@ -55,7 +55,7 @@ abstract contract IRouter {
         uint deadline
     ) external virtual returns (uint[] memory amounts);
 
-    // 进行代币交换，用户指定所需的精确输出代币数量，并设置最大输入代币数量
+    // 进行代币交换，用户指定所需的精确输出代币数量，并设置最大输入代币数量   input  <-- output
     function swapTokensForExactTokens(
         uint amountOut,
         uint amountInMax,
