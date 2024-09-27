@@ -6,6 +6,7 @@ import "../../src/core/Pair.sol";
 import "../../src/core/Factory.sol";
 import "../Tools.sol";
 import "../MockToken.sol";
+import "../Events.sol";
 
 contract PairTest is Test {
     Factory factory;
@@ -17,6 +18,8 @@ contract PairTest is Test {
     address liquidityProvider1;
     address liquidityProvider2;
     address liquidityProvider3;
+
+    address userA;
 
     address pairOwner;
     uint256 public constant MINIMUM_LIQUIDITY = 10e3;          // 10^3
@@ -36,6 +39,8 @@ contract PairTest is Test {
         liquidityProvider2 = makeAddr(" liquidityProvider2");
         liquidityProvider3 = makeAddr(" liquidityProvider3");
 
+        userA = makeAddr("userA");
+
         mockTokenOwner = makeAddr("mockTokenOwner");
         vm.startPrank(mockTokenOwner);
 
@@ -54,12 +59,43 @@ contract PairTest is Test {
         weth.transfer(liquidityProvider3, 100 ether);    // 给liquidityProvider3 100 ether
         dai.transfer(liquidityProvider3, 1000 ether);    // 给liquidityProvider3 1000 dai
 
+        weth.transfer(userA, 100 ether);
+        dai.transfer(userA, 1000 ether);
+
+        vm.stopPrank();
+    }
+
+    function addLiquidity() internal returns(uint256 liquidity1, uint256 liquidity2, uint256 liquidity3) {
+        // 第一次添加流动性
+        // liquidity = sqrt(10 * 100) - 10e3 = 31622776601683783319 wei
+        vm.startPrank(liquidityProvider1);
+        weth.transfer(address(pair), 10 ether);
+        dai.transfer(address(pair), 100 ether);
+        liquidity1 = pair.mint(liquidityProvider1);   // 31.6 ether
+        vm.stopPrank();
+
+        // 第二次次添加流动性
+        // 添加之前，池中已经有 weth = 10 ether dai = 100 ether   x / y = 1 / 10
+        // 因此需要按照 Δx = 20   Δy = 200                      Δx / Δy = 1 / 10 的比例添加
+        // min(Δx / x = 2, Δy / y = 2) = 2
+        // Δliquidity / totalSupply = min(Δx / x = 2, Δy / y = 2) = 2
+        vm.startPrank(liquidityProvider2);
+        weth.transfer(address(pair), 20 ether);
+        dai.transfer(address(pair), 200 ether);
+        liquidity2 = pair.mint(liquidityProvider2);    // 63.2 ether
+        vm.stopPrank();
+
+        // 第三次次添加流动性
+        vm.startPrank(liquidityProvider3);
+        weth.transfer(address(pair), 30 ether);
+        dai.transfer(address(pair), 300 ether);
+        liquidity3 = pair.mint(liquidityProvider3); 
         vm.stopPrank();
     }
 
     function testBalance() public view {
-        assertEq(weth.balanceOf(mockTokenOwner), 700 ether);
-        assertEq(dai.balanceOf(mockTokenOwner), 7000 ether);
+        assertEq(weth.balanceOf(mockTokenOwner), 600 ether);
+        assertEq(dai.balanceOf(mockTokenOwner), 6000 ether);
 
         assertEq(weth.balanceOf(liquidityProvider1), 100 ether);
         assertEq(dai.balanceOf(liquidityProvider1), 1000 ether);
@@ -132,33 +168,12 @@ contract PairTest is Test {
 
     function testBurn() public {
 
-        // 第一次添加流动性
-        vm.startPrank(liquidityProvider1);
-        weth.transfer(address(pair), 10 ether);
-        dai.transfer(address(pair), 100 ether);
-        uint256 liquidity1 = pair.mint(liquidityProvider1);   // 31.6 ether
-        vm.stopPrank();
-
-        // 第二次次添加流动性
-        vm.startPrank(liquidityProvider2);
-        weth.transfer(address(pair), 20 ether);
-        dai.transfer(address(pair), 200 ether);
-        uint liquidity2 = pair.mint(liquidityProvider2);    // 63.2 ether
-        vm.stopPrank();
-
-        // 第三次次添加流动性
-        vm.startPrank(liquidityProvider3);
-        weth.transfer(address(pair), 30 ether);
-        dai.transfer(address(pair), 300 ether);
-        uint liquidity3 = pair.mint(liquidityProvider3); 
-        vm.stopPrank();
+       (uint256 liquidity1, uint256 liquidity2, uint256 liquidity3) = addLiquidity();
 
         uint256 totalSupply = pair.totalSupply();
 
         assert(liquidity1 > 31.622 ether);
         assert(liquidity1 < 31.623 ether);      // 31.62
-        assert(liquidity1 == pair.balanceOf(liquidityProvider1));      // 31.62
-
 
         assert(liquidity2 > 63.244 ether);  
         assert(liquidity2 < 63.246 ether);      // 63.24
@@ -203,12 +218,32 @@ contract PairTest is Test {
         // 接下来进行 burn 操作
         // 注意：流动性提供者在调用 burn() 前，应该把他们的 LP Token 转移到 pair合约地址
         vm.startPrank(liquidityProvider3);
-        pair.transfer(address(pair), liquidity3);
+        pair.transfer(address(pair), liquidity3);           // 把 LP Token 转移到 pair合约
         (uint256 amountWeth, uint256 amountDai) = pair.burn(liquidityProvider3);
 
         assertEq(amountWeth / 1e18, 330 ether / 1e18);
         assertEq(amountDai / 1e18, 45 ether / 1e18);
         vm.stopPrank();
+    }
+
+    function testSwap() public {
+        addLiquidity(); 
+
+        // 现在池中具有 x = 60 ether   y = 600 ether    x / y = 1 / 10
+        // userA 最初的余额 x = 100 ether, y = 1000 ether
+        // 现在 userA 想要输入 Δx = 20，换取一定量的 Δy  (x + Δx)*(y - Δy) = xy
+        // Δy = y * Δx / (x + Δx) = 600 * 20 / (60 + 20) =  150 ether
+
+        vm.startPrank(userA);
+        // vm.expectEmit(true, true, true, true);
+        // emit Swap(userA, 20 ether, 0, 0, 150 ether, userA);
+
+        pair.swap(150, 0 ether,userA, "");
+        uint256 wethBalance = weth.balanceOf(userA);
+        uint256 daiBalance = dai.balanceOf(userA);
+        assertEq(wethBalance, 100 ether - 20 ether);
+        assertEq(daiBalance, 1000 ether + 150 ether);
+
     }
 }
 

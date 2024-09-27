@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./interfaces/IFactory.sol";
+import "../interfaces/IFactory.sol";
 import "./Pair.sol";
 
 contract Factory is IFactory {

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./interfaces/IPair.sol";
-import "./interfaces/IFactory.sol";
-import "./interfaces/ICallee.sol";
-import "./libraries/SafeMath.sol";
-import "./libraries/UQ112x112.sol";
+import "../interfaces/IPair.sol";
+import "../interfaces/IFactory.sol";
+import "../interfaces/ICallee.sol";
+import "../libraries/SafeMath.sol";
+import "../libraries/UQ112x112.sol";
 import "./ERC20.sol";
 
 import {Test, console} from "forge-std/Test.sol";
@@ -152,7 +152,7 @@ contract Pair is IPair, ERC20 {
         uint balance1 = IERC20(_token1).balanceOf(address(this));
 
         // 当前合约地址上拥有的流动性代币
-        // 注意：流动性提供者在调用 burn() 前，应该把他们的 LP Token 转移到合约地址
+        // 注意：流动性提供者在调用 burn() 前，已经把他们的 LP Token 转移到合约地址
         // 因此这里使用 balanceOf[address[this]]，而不是 balanceOf[address[to]] 
         uint liquidity = balanceOf[address(this)];
         // uint liquidity = balanceOf[to];
@@ -165,15 +165,9 @@ contract Pair is IPair, ERC20 {
         amount0 = liquidity.mul(balance0) / _totalSupply; // 根据储备量和流动性比例计算返还的 token0
         amount1 = liquidity.mul(balance1) / _totalSupply; // 根据储备量和流动性比例计算返还的 token0
 
-        console.log("address(this) --- ", address(this));
-        console.log("balance0 --- ", balance0);
-        console.log("balance1 --- ", balance1);
-        console.log("liquidity --- ", liquidity);
-
         require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
 
-        // 注意：流动性提供者在调用 burn() 前，应该把他们的 LP Token 转移到合约地址
-        
+        // 注意：流动性提供者在调用 burn() 前，已经把他们的 LP Token 转移到合约地址
         // 因此这里使用 balanceOf[address[this]]，而不是 balanceOf[address[to]] 
         _burn(address(this), liquidity);
         // _burn(to, liquidity);
@@ -199,6 +193,12 @@ contract Pair is IPair, ERC20 {
 
         // 获取当前流动性池中的两个代币的储备量 reserve0 和 reserve1
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+
+        console.log("amount0Out --- ", amount0Out);
+        console.log("amount1Out --- ", amount1Out / 1e18);
+        console.log("_reserve0 --- ", _reserve0 / 1e18);
+        console.log("_reserve1 --- ", _reserve1 / 1e18);
+
 
         require(amount0Out < _reserve0 && amount1Out < _reserve1, 'UniswapV2: INSUFFICIENT_LIQUIDITY');
 

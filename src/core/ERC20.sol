@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./interfaces/IERC20.sol";
-import "./libraries/SafeMath.sol";
+import "../interfaces/IERC20.sol";
+import "../libraries/SafeMath.sol";
 
 contract ERC20 is IERC20 {
     using SafeMath for uint;

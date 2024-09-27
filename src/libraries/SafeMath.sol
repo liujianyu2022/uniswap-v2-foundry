@@ -14,6 +14,12 @@ library SafeMath {
         require(y == 0 || (z = x * y) / y == x, 'ds-math-mul-overflow');
     }
 
+    function div(uint256 x, uint256 y) internal pure returns (uint256) {
+        require(y > 0, "division by zero");
+        return x / y;
+    }
+
+
     function min(uint x, uint y) internal pure returns (uint z) {
         z = x < y ? x : y;
     }
