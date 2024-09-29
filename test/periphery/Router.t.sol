@@ -30,7 +30,7 @@ contract RouterTest is Test {
         router = new Router(address(factory), address(weth));
 
         tokenA.mint(userA, 100 ether);
-        tokenB.mint(userA, 100 ether)
+        tokenB.mint(userA, 100 ether);
     }
 
 }
