@@ -52,7 +52,9 @@ library Tools {
 
     function safeTransferFrom(address token, address from, address to, uint256 value) public {
         // bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
-        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x23b872dd, from, to, value));
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(0x23b872dd, from, to, value)
+        );
 
         require(
             success && (data.length == 0 || abi.decode(data, (bool))),
@@ -61,29 +63,48 @@ library Tools {
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+    // input  -->  output      (x+Δx)(y-Δy) = xy      Δy = y * Δx / (x + Δx)
     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut) {
         require(amountIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
-        uint amountInWithFee = amountIn.mul(997);
-        uint numerator = amountInWithFee.mul(reserveOut);
-        uint denominator = reserveIn.mul(1000).add(amountInWithFee);
+
+        uint amountInWithFee = amountIn.mul(997);                       // input 先扣除手续费  Δx' = 0.997 * Δx
+        uint numerator = amountInWithFee.mul(reserveOut);               // numerator = y * Δx'
+        uint denominator = reserveIn.mul(1000).add(amountInWithFee);    // denominator = x + Δx'
+
         amountOut = numerator / denominator;
     }
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
+    // input  <--  output      (x+Δx)(y-Δy) = xy      Δx = x * Δy / (y - Δy)
     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) internal pure returns (uint amountIn) {
         require(amountOut > 0, 'UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
-        uint numerator = reserveIn.mul(amountOut).mul(1000);
-        uint denominator = reserveOut.sub(amountOut).mul(997);
+
+        uint numerator = reserveIn.mul(amountOut).mul(1000);        // numerator = x * Δy
+        uint denominator = reserveOut.sub(amountOut).mul(997);      // denominator = y - Δy
+
+        // add(1) 是为了确保返回的输入金额始终向上取整。如果计算出的 amountIn 是一个小数，最终需要向上取整到最近的整数，以确保交易能够完成
+        // add(1) 可以避免由于舍入造成的不足以满足交易需求
         amountIn = (numerator / denominator).add(1);
     }
 
     // performs chained getAmountOut calculations on any number of pairs
+    // input  -->  ...  -->  ...  -->  output
+    // example: [eth, mkr, dai]        1 eth = 10 mkr    1 mkr = 100 dai
+    // path: eth  -->  mkr  -->  dai
+
+    //          path[i]          path[i + 1]
+    //                                          amounts[0] = 1
+    // i = 0    eth              mkr            amounts[1] = 10     
+    // i = 1    mkr              dai            amounts[2] = 1000           amounts = [1, 10, 1000]
     function getAmountsOut(address factory, uint amountIn, address[] memory path) internal view returns (uint[] memory amounts) {
         require(path.length >= 2, 'UniswapV2Library: INVALID_PATH');
         amounts = new uint[](path.length);
         amounts[0] = amountIn;
+        
+        // i <= path.length - 2
+        // 循环次数：path.length - 2 次
         for (uint i; i < path.length - 1; i++) {
             (uint reserveIn, uint reserveOut) = getReserves(factory, path[i], path[i + 1]);
             amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
@@ -91,10 +112,21 @@ library Tools {
     }
 
     // performs chained getAmountIn calculations on any number of pairs
+    // input  <--  ...  <--  ...  <--  output
+    // example: [eth, mkr, dai]        1 eth = 10 mkr    1 mkr = 100 dai
+    // path: eth  <--  mkr  <--  dai
+    
+    //          path[i]          path[i + 1]    
+    // i = 1    dai              mkr            amounts[2] = 1000           
+    // i = 0    mkr              eth            amounts[1] = 10
+    //                                          amounts[0] = 1              amounts = [1, 10, 1000]
     function getAmountsIn(address factory, uint amountOut, address[] memory path) internal view returns (uint[] memory amounts) {
         require(path.length >= 2, 'UniswapV2Library: INVALID_PATH');
         amounts = new uint[](path.length);
+
         amounts[amounts.length - 1] = amountOut;
+        
+        // 循环次数：path.length - 2 次
         for (uint i = path.length - 1; i > 0; i--) {
             (uint reserveIn, uint reserveOut) = getReserves(factory, path[i - 1], path[i]);
             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);

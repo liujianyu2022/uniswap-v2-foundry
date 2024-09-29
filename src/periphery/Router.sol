@@ -137,48 +137,79 @@ contract Router is IRouter {
     }
 
     // requires the initial amount to have already been sent to the first pair
-    function _swap(uint[] memory amounts, address[] memory path, address _to) internal virtual {
+
+    // input  -->  ...  -->  ...  -->  output
+    // example: [eth, mkr, dai]        1 eth = 10 mkr    1 mkr = 100 dai
+    // path: eth  -->  mkr  -->  dai   amounts = [1, 10, 1000]
+
+    //          path[i]          path[i + 1]
+    //                                          amounts[0] = 1
+    // i = 0    eth              mkr            amountOut = 10     
+    // i = 1    mkr              dai            amounts[2] = 1000           
+    function _swap(uint[] memory amounts, address[] memory path, address _to) internal {
+        
+        // 循环次数：path.length - 2 次
         for (uint i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
+
             (address token0,) = Tools.sortTokens(input, output);
             uint amountOut = amounts[i + 1];
-            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
-            address to = i < path.length - 2 ? Tools.pairFor(factory, output, path[i + 2]) : _to;
+            (uint amount0Out, uint amount1Out) = ( input == token0 ) ? (uint(0), amountOut) : (amountOut, uint(0));
+
+            // i = 0    to = Tools.pairFor(factory, mkr, dai);            path[i + 1]
+            address to = ( i < path.length - 2 ) ?  Tools.pairFor(factory, output, path[i + 2]) : _to;
+
             Pair(Tools.pairFor(factory, input, output)).swap(
                 amount0Out, amount1Out, to, new bytes(0)
             );
         }
     }
 
-    // 进行代币交换，用户提供精确数量的输入代币，并指定最小输出数量     input  -->  output
+    // 进行代币交换，用户提供精确数量的输入代币，并指定最小输出数量     
+    // input  -->  output
     function swapExactTokensForTokens(
-        uint amountIn,
-        uint amountOutMin,
+        uint amountIn,                      // 提供输入的数量
+        uint amountOutMin,                  // 指定最小的输出数量
         address[] calldata path,
         address to,
         uint deadline
-    ) external virtual override hasExpired(deadline) returns (uint[] memory amounts) {
+    ) external override hasExpired(deadline) returns (uint256[] memory amounts) {
         amounts = Tools.getAmountsOut(factory, amountIn, path);
+
         require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
-        Tools.safeTransferFrom(
-            path[0], msg.sender, Tools.pairFor(factory, path[0], path[1]), amounts[0]
-        );
+
+        // 确保代币能够从 用户账户 安全地转移到 pair交易对合约。否则的话，pair 合约无法使用用户的 代币的
+        // path: [weth, mkr, dai]       pairPath: [(weth, mkr), (mkr, dai)]
+        Tools.safeTransferFrom({
+            token: path[0], 
+            from: msg.sender, 
+            to: Tools.pairFor(factory, path[0], path[1]),       // 将amounts0转到pair合约，
+            value: amounts[0]
+        });
+
         _swap(amounts, path, to);
     }
 
-    // 进行代币交换，用户指定所需的精确输出代币数量，并设置最大输入代币数量   input  <-- output
+    // 进行代币交换，用户指定所需的精确输出代币数量，并设置最大输入代币数量   
+    // input  <-- output
     function swapTokensForExactTokens(
-        uint amountOut,
-        uint amountInMax,
+        uint amountOut,                     // 提供输入的数量
+        uint amountInMax,                   // 指定最大的输入数量
         address[] calldata path,
         address to,
         uint deadline
     ) external virtual override hasExpired(deadline) returns (uint[] memory amounts) {
         amounts = Tools.getAmountsIn(factory, amountOut, path);
+
         require(amounts[0] <= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
-        Tools.safeTransferFrom(
-            path[0], msg.sender, Tools.pairFor(factory, path[0], path[1]), amounts[0]
-        );
+
+        Tools.safeTransferFrom({
+            token: path[0], 
+            from: msg.sender,
+            to: Tools.pairFor(factory, path[0], path[1]),
+            value: amounts[0]
+        });
+
         _swap(amounts, path, to);
     }
 }

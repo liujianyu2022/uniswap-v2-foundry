@@ -194,12 +194,6 @@ contract Pair is IPair, ERC20 {
         // 获取当前流动性池中的两个代币的储备量 reserve0 和 reserve1
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
 
-        console.log("amount0Out --- ", amount0Out);
-        console.log("amount1Out --- ", amount1Out / 1e18);
-        console.log("_reserve0 --- ", _reserve0 / 1e18);
-        console.log("_reserve1 --- ", _reserve1 / 1e18);
-
-
         require(amount0Out < _reserve0 && amount1Out < _reserve1, 'UniswapV2: INSUFFICIENT_LIQUIDITY');
 
         uint balance0;
