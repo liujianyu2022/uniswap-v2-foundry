@@ -64,7 +64,7 @@ library Tools {
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
     // input  -->  output      (x+Δx)(y-Δy) = xy      Δy = y * Δx / (x + Δx)
-    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut) {
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) public pure returns (uint amountOut) {
         require(amountIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
 
@@ -77,7 +77,7 @@ library Tools {
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
     // input  <--  output      (x+Δx)(y-Δy) = xy      Δx = x * Δy / (y - Δy)
-    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) internal pure returns (uint amountIn) {
+    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) public pure returns (uint amountIn) {
         require(amountOut > 0, 'UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
 
@@ -98,7 +98,7 @@ library Tools {
     //                                          amounts[0] = 1
     // i = 0    eth              mkr            amounts[1] = 10     
     // i = 1    mkr              dai            amounts[2] = 1000           amounts = [1, 10, 1000]
-    function getAmountsOut(address factory, uint amountIn, address[] memory path) internal view returns (uint[] memory amounts) {
+    function getAmountsOut(address factory, uint amountIn, address[] memory path) public view returns (uint[] memory amounts) {
         require(path.length >= 2, 'UniswapV2Library: INVALID_PATH');
         amounts = new uint[](path.length);
         amounts[0] = amountIn;

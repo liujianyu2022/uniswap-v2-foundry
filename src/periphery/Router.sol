@@ -21,29 +21,25 @@ contract Router is IRouter {
         WETH = _WETH;
     }
 
-    function quote(uint amountA, uint reserveA, uint reserveB) external pure virtual override returns (uint amountB) {
-
+    function quote(uint amountA, uint reserveA, uint reserveB) external pure override returns (uint256 amountB) {
+        return Tools.quote(amountA, reserveA, reserveB);
     }
 
-    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) external pure virtual override returns (uint amountOut) {
-        
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) external pure override returns (uint amountOut) {
+        return Tools.getAmountOut(amountIn, reserveIn, reserveOut);
     }
 
-    function getAmountIn(
-        uint amountOut,
-        uint reserveIn,
-        uint reserveOut
-    ) external pure virtual override returns (uint amountIn) {}
+    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) external pure override returns (uint amountIn) {
+        return Tools.getAmountIn(amountOut, reserveIn, reserveOut);
+    }
 
-    function getAmountsOut(
-        uint amountIn,
-        address[] calldata path
-    ) external view virtual override returns (uint[] memory amounts) {}
+    function getAmountsOut(uint amountIn, address[] calldata path) external view override returns (uint[] memory amounts) {
+        return Tools.getAmountsOut(factory, amountIn, path);
+    }
 
-    function getAmountsIn(
-        uint amountOut,
-        address[] calldata path
-    ) external view virtual override returns (uint[] memory amounts) {}
+    function getAmountsIn(uint amountOut, address[] calldata path) external view override returns (uint[] memory amounts) {
+        return Tools.getAmountsIn(factory, amountOut, path);
+    }
 
     // 基于 tokenA 和 tokenB 的储量 reserveA 和 reserveB 以及用户意向的 amountADesired 和 amountBDesired
     // 计算出满足 Δx / Δy = x / y，即满足比例关系的 tokenA 和 tokenB 的实际数量 amountA 和 amountB
